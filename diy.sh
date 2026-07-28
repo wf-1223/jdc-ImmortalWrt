@@ -6,9 +6,6 @@ git config --global http.version HTTP/1.1
 git config --global http.postBuffer 1048576000
 git config --global core.compression 0
 
-# 替换下载源为北大镜像，解决Failed to fetch
-sed -i 's#https://downloads.immortalwrt.org#https://mirrors.pku.edu.cn/immortalwrt#g' repositories.conf
-
 # 加载京东云一代 RE-SP-01B 适配补丁
 git clone https://github.com/yjzzjy4/JDCloud-RE-SP-01B.git jdcloud-patch
 cp -rf jdcloud-patch/target/linux/ramips/* target/linux/ramips/
@@ -24,4 +21,8 @@ cp -rf files/* ./
 
 # 更新软件包feeds
 ./scripts/feeds update -a
+
+# ===== 移到feeds update之后！此时repositories.conf才存在 =====
+sed -i 's#https://downloads.immortalwrt.org#https://mirrors.pku.edu.cn/immortalwrt#g' feeds/distfeeds.conf
+
 ./scripts/feeds install -a
