@@ -1,1 +1,32 @@
+# Beware! This script will be in /rom/etc/uci-defaults/ as part of the image.
+uci set system.@system[0].hostname='OpenWRT'uci set system.@system[0].hostname='OpenWRT'
+uci commit systemuci commit system
+root_password="admin"root_password="admin"
 
+uci set network.lan.ipaddr=192.168.100.1uci set network.lan.ipaddr=192.168.100.1
+uci set dhcp.lan.leasetime='24h'uci set dhcp.lan.leasetime='24h'
+uci commit networkuci commit network
+
+uci set wireless.@wifi-device[0].country='CN'uci set wireless.@wifi-device[0].country='CN'
+uci set wireless.@wifi-device[0].htmode='HT20'uci set wireless.@wifi-device[0].htmode='HT20'
+uci set wireless.@wifi-device[0].band='2g'uci set wireless.@wifi-device[0].band='2g'
+uci set wireless.@wifi-device[0].channel='auto'uci set wireless.@wifi-device[0].channel='auto'
+uci set wireless.@wifi-iface[0].ssid='OpenWRT'uci set wireless.@wifi-iface[0].ssid='OpenWRT'
+uci set wireless.@wifi-iface[0].encryption='psk2'uci set wireless.@wifi-iface[0].encryption='psk2'
+uci set wireless.@wifi-iface[0].key='wifi123456'uci set wireless.@wifi-iface[0].key='wifi123456'
+
+uci set wireless.@wifi-device[1].country='CN'uci set wireless.@wifi-device[1].country='CN'
+uci set wireless.@wifi-device[1].channel='36'uci set wireless.@wifi-device[1].channel='36'
+uci set wireless.@wifi-iface[1].ssid='OpenWRT_5G'uci set wireless.@wifi-iface[1].ssid='OpenWRT_5G'
+uci set wireless.@wifi-iface[1].encryption='psk2'uci set wireless.@wifi-iface[1].encryption='psk2'
+uci set wireless.@wifi-iface[1].key='wifi123456'uci set wireless.@wifi-iface[1].key='wifi123456'
+uci commit wirelessuci commit wireless
+
+# 刷机开机自动替换opkg软件源（北大镜像）# 刷机开机自动替换opkg软件源（北大镜像）
+sed -i 's#https://downloads.immortalwrt.org#https://mirrors.pku.edu.cn/immortalwrt#g' /etc/opkg/distfeeds.confsed -i 's#https://downloads.immortalwrt.org#https://mirrors.pku.edu.cn/immortalwrt#g' /etc/opkg/distfeeds.conf
+
+exec >/tmp/setup.log 2>&1exec >/tmp/setup.log 2>&1
+if [ -n "$root_password" ]; thenif [ -n "$root_password" ]; then
+  (echo "$root_password"; sleep 1; echo "$root_password") | passwd > /dev/null  (echo "$root_password"; sleep 1; echo "$root_password") | passwd > /dev/null
+fifi
+exit 0exit 0
