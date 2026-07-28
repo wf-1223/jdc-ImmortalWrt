@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# =========新增：京东云RE-SP-01B 32MB Flash容量解除限制=========
+sed -i 's/IMAGE_SIZE := 16384k/IMAGE_SIZE := 32768k/' target/linux/ramips/image/mt7621.mk
+
 # Git网络优化
 git config --global http.version HTTP/1.1
 git config --global http.postBuffer 1048576000
