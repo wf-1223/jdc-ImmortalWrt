@@ -1,122 +1,42 @@
-name: 🚀 编译 (Build)
+name: Build ImmortalWrt
 
 on:
+  push:
+    branches: main
   workflow_dispatch:
-    inputs:
-      owner:
-        description: 'ImmortalWrt 仓库的拥有者 (Owner of ImmortalWrt repo)'
-        type: string
-        required: true
-        default: 'immortalwrt'
-      repo:
-        description: 'ImmortalWrt 仓库的名字 (Name of ImmortalWrt repo)'
-        type: string
-        required: true
-        default: 'immortalwrt'
-      branch:
-        description: 'ImmortalWrt 仓库的分支 (Branch of ImmortalWrt repo)'
-        type: string
-        required: true
-        default: 'master'
-      ssh:
-        description: '使用 ssh 连接到编译环境 (Connect to the build environment using ssh)'
-        type: boolean
-        default: false
-      debug:
-        description: '如果失败进行 ssh 在线编译 (Start SSH service on failure)'
-        type: boolean
-        default: false
 
 jobs:
   build:
-    name: 🚀 编译 (Build)
-    runs-on: ubuntu-latest
-    
+    runs-on: ubuntu-24.04
     steps:
-      - name: 释放磁盘空间 (Free disk space)
-        uses: jlumbroso/free-disk-space@main
-        with:
-    # this might remove tools that are actually needed,
-    # if set to "true" but frees about 6 GB
-          tool-cache: true
-    # all of these default to true, but feel free to set to
-    # "false" if necessary for your workflow
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-          
-      - name: 下载编译所需的依赖 (Install the software packages required for compilation)
-        run: |
-          sudo apt update -y
-          sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential  bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib  g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev libreadline-dev libssl-dev libtool libyaml-dev libz-dev lld llvm lrzsz mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply python3-docutils python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs  upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
-          sudo apt clean
-          
-      - name: 克隆当前仓库 (Clone current repo)
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 克隆 ImmortalWrt 仓库 (Clone ImmortalWrt repo)
-        uses: actions/checkout@v4
-        with:
-          repository: '${{inputs.owner}}/${{inputs.repo}}'
-          ref: ${{inputs.branch}}
-          path: ImmortalWrt
-
-      - name: 复制当前仓库的配置文件到 ImmortalWrt 仓库  (Copy current repo config to ImmortalWrt repo)
-        run: cp -f .config feeds.conf.default diy.sh ImmortalWrt/
-         
-      - name: 运行 diy.sh (Run diy.sh)
-        if: ${{inputs.ssh == false}}
-        working-directory: ImmortalWrt
+      - name: Install dependencies
         run: |
-          chmod +x diy.sh
+          sudo apt update
+          sudo apt install -y build-essential clang flex bison g++ gawk gcc-multilib gettext git libncurses-dev libssl-dev python3-distutils rsync unzip zlib1g-dev file wget
+
+      - name: Clone ImmortalWrt source
+        run: |
+          git clone https://mirror.ghproxy.com/https://github.com/immortalwrt/immortalwrt.git ./openwrt
+          cd openwrt
+          cp -rf ../diy.sh ./
+          cp -rf ../.config ./
+          cp -rf ../files ./
+          chmod +x ./diy.sh
+
+      - name: Build firmware
+        run: |
+          cd openwrt
           ./diy.sh
+          export DOWNLOAD_MIRROR=china
+          make defconfig
+          make download -j2
+          make -j$(nproc)
 
-#      - name: 开启 SSH 服务 (Start SSH service)
-#        if: ${{inputs.ssh == true}}
-#        uses: lhotari/action-upterm@v1
-#        with:
-#          wait-timeout-minutes: 120
-
-      # 你也可以使用这个，个人觉得它更好用 (You can use this, I personally think it is better)
-      - name: 开启 SSH 服务 (Start SSH service)
-        if: ${{inputs.ssh == true}}
-        uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 120
-
-
-      - name: 编译前上传配置 (Upload config before build)
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: config-before-build
-          include-hidden-files: true
-          path: |
-            ImmortalWrt/.config
-            ImmortalWrt/feeds.conf.default
-
-      - name: 编译 ImmortalWrt (Build ImmortalWrt)
-        working-directory: ImmortalWrt
-        run: make -j$(nproc) || make -j1 V=s
-        continue-on-error: true
-
-      - name: 如果失败进行 ssh 在线编译 (Start SSH service on failure)
-        if: failure() &&  ${{inputs.debug == true}}
-        uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 300
-
-      - name: 判断运行是否成功 (Determine whether the operation is successful)
-        run: |
-         if [ -f ImmortalWrt/bin/targets ]; then
-          echo "Compile Succeed!"
-         else
-          echo "Compile Failed!"
-          exit 1
-         fi
-         
-      - name: 上传编译结果到 Artifact (Upload build result to Artifact)
-        uses: actions/upload-artifact@v4
-        with:
-          name: ImmortalWrt-build-result
-          path: ImmortalWrt/bin/targets
+          path: openwrt/bin/targets/ramips/mt7621/immortalwrt
+          name: Firmware
