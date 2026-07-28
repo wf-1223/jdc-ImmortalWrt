@@ -23,7 +23,7 @@ jobs:
 
       - name: Clone ImmortalWrt source
         run: |
-          git clone https://mirror.ghproxy.com/https://github.com/immortalwrt/immortalwrt.git ./openwrt
+          git clone https://github.com/immortalwrt/immortalwrt.git ./openwrt
           cd openwrt
           cp -rf ../diy.sh ./
           cp -rf ../.config ./
