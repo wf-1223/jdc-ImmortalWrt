@@ -39,8 +39,9 @@ jobs:
           make download -j2
           make -j$(nproc)
 
+      # ========== 下面这段是修改后的上传代码 ==========
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
-          path: openwrt/bin/targets/ramips/mt7621/immortalwrt
-          name: Firmware
+          path: openwrt/bin/targets/ramips/mt7621/*.bin
+          name: JDCloud_RE-SP-01B_Firmware
